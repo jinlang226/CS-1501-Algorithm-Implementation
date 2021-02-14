@@ -1,0 +1,839 @@
+import java.io.*;
+import java.util.*;
+/**
+ * 
+ * @author Jinlang
+ *
+ */
+public class a5graph {
+	
+	private static String cities2 [];
+	private static ArrayList<String> citiesSorted = null;
+	private static LinkedHashMap<String, Integer> cities;
+	private static Graph graph, MST;
+	private static int minPath;
+	/**
+	 * 
+	 * @param args
+	 * @throws Exception
+	 */
+	public static void main(String args[]) throws Exception {
+		
+		File fileName;
+		int choice;
+		
+		Scanner input = new Scanner(System.in);
+		System.out.println("Welcome to the Assignment 5!");
+		System.out.print("Please enter the file name: ");
+		fileName = new File(input.nextLine());
+		graph  = readFile(fileName);
+		do {
+			System.out.println("===================================================================");
+			System.out.println("Selections: ");
+			System.out.println("1. Show the entire list of direct routes, distances and prices;");
+			System.out.println("2. Display a minimum spanning tree for the service routes based on distances;");
+			System.out.println("3. Search the shortest path;");
+			System.out.println("4. Given a dollar amount, output all trips whose cost is less than or equal to that amount;");
+			System.out.println("5. Add a new route to the schedule;");
+			System.out.println("6. Remove a route from the schedule;");
+			System.out.println("7. Quit the program, rotes should be saved back to the file.");
+			System.out.println("Your choice: ");
+			choice = input.nextInt();
+			System.out.println("===================================================================");
+			switch (choice) {
+				case 1: 
+					graph.choice1();
+					break;
+				case 2: 
+					choice2(graph);
+					break;
+				case 3: 
+						System.out.print("Enter Initial City: ");
+		                String city1 = input.next();
+		                
+		                if(!graph.contains(city1)) {
+		                	System.out.println(city1 + " is not on route");
+		                    continue;
+		                } 
+		                int c1 = cities.get(city1);
+
+		                System.out.print("Enter Destination City: ");
+		                String city2 = input.next();
+		                
+		                if(!graph.contains(city2)) {
+		                    System.out.println(city2 + " is not on route");
+		                    continue;
+		                }
+		                int c2 = cities.get(city2);
+		                System.out.println("Shortest Path By: \n1. Miles\n2. Price\n3. Hops");
+		                
+		                int mode = input.nextInt();
+
+		                LinkedList<Integer> shortestPath[] = choice3(c1, mode);
+
+		                if(shortestPath[c2].peek() == c1) {
+		                	System.out.println(cities2[c1] + " to " + cities2[c2]+ ": ");
+		                	choice3Helper(shortestPath[c2], mode);
+		                	//findPathLengthD(shortestPath[c2], mode);
+		                }
+		                else {
+		                	System.out.printf("No path from %s to %s \n", cities2[c1], cities2[c2]);
+		                }
+		                break;
+				case 4:
+					System.out.print("Enter Max Dollar Amount: ");
+			        float amount = input.nextFloat();
+					choice4(amount);
+					break;
+				case 5:
+					System.out.println("Adding a new route");
+					 System.out.print("Enter City 1: ");
+				     city1 = input.next();
+				     if(!graph.contains(city1)) {
+				    	 System.out.println(city1 + " not on route");
+				    	 break;
+				     }
+				     System.out.print("Enter City 2: ");
+				     city2 = input.next();
+				     if(!graph.contains(city2)) {
+				    	 System.out.println(city2 + " not on route");
+				    	 break;
+				     }
+				     System.out.print("Flight Distance is: ");
+				     int distance = input.nextInt();
+				     System.out.print("price is: ");
+				     double price = input.nextInt();
+				     choice5(city1, city2, distance, price);
+				     break;
+				case 6:
+					System.out.println("deleting a new route");
+					System.out.print("Enter City 1: ");
+					city1 = input.next();
+				     if(!graph.contains(city1)) {
+				    	 System.out.println(city1 + " not on route");
+				    	 break;
+				     }
+				     System.out.print("Enter City 2: ");
+				     city2 = input.next();
+				     if(!graph.contains(city2)) {
+				    	 System.out.println(city2 + " not on route");
+				    	 break;
+				     }
+				     choice6(city1, city2);
+			}
+		
+		} while(choice != 7);
+		System.out.println("exit this program");
+	}
+
+	public static double findPathLengthD(LinkedList<Integer> path)
+	{
+		//if(path.size() == 1){ strPath = cities2[path.peek()]; return 0.0;}
+
+		StringBuilder result = new StringBuilder();
+		int plen = path.size() - 1, max = plen + 1;
+		double sum, total = 0.0;
+		Integer curr, next = null;
+		ListIterator<Integer> li = path.listIterator(0),
+		 					  li2 = path.listIterator(1);
+
+		for (int i = 0; i < plen; i++) 
+		{
+			max--;
+			curr = li.next();
+			System.out.println(cities2[curr]);
+
+			next = li2.next();
+			sum = graph.getPrice(curr, next);
+			
+			if(max > 0)
+			{ 
+				System.out.println(" --(");
+				System.out.println(String.format("$%.2f", sum));
+				System.out.println(")--> ");
+			}
+
+			total +=  sum;
+		}
+		System.out.println(cities2[next]);
+		return total;
+	}
+	
+	
+	public static void choice6(String city1, String city2) {
+		int from = cities.get(city1);
+		int to = cities.get(city2);
+		if(graph.returnAdjacencyList(from).get(to) == null) {
+			System.out.println("Threre is no route from " + city1 + " to " + city2);
+			
+		} else {
+			graph.removeEdge(from, to);
+			System.out.println("Successfully remove the route");
+		}
+	}
+	
+	public static void choice5(String city1, String city2, int distance, double price) {
+		int from = cities.get(city1);
+		int to = cities.get(city2);
+		
+		if(graph.returnAdjacencyList(from).get(to) == null) {
+			graph.addEdge(from, to, distance, price);
+			System.out.println("Added edge successfully.");
+			System.out.println("From " + city1 + " to " + city2  
+					+ " with distance of " + distance + ", and price of " + price);
+		}
+	}
+	
+	
+	public static void choice4(float maxPrice) {
+		
+		int V = graph.V();
+		int paths = 0;
+		
+		boolean visited []= new boolean[V];
+		float priceSum = (float) 0.0, 		// cc
+			   newpriceSum = (float) 0.0; 	// newCC
+		Integer prevCity = null; 	// Holds the last city visited
+		
+		
+        Iterator<Integer>[] adj = (Iterator<Integer>[]) new Iterator[V];
+        LinkedList<Integer> stack = new LinkedList<Integer>();
+		
+		for(int i = 0; i < V; i++) {
+			
+			stack.add(i);
+			visited[i] = true;
+			for(int v = 0; v < V; v++) {
+				adj[v] = graph.returnAdjacencyList(v).keySet().iterator();
+			}
+			//System.out.println("Departing from "+ cities2[i]);
+			
+			while(!stack.isEmpty()) {
+				
+				int v = stack.peekLast();
+				
+				if(adj[v].hasNext()) {
+					int w = adj[v].next();
+					if(!visited[w]) {
+						
+						newpriceSum = (float) (priceSum + graph.getPrice(v, w));
+								
+						
+						if(newpriceSum <= maxPrice) {
+							paths++;
+							visited[w] = true;
+							priceSum = newpriceSum;
+							stack.add(w);
+							System.out.println("The cost is: " + priceSum);
+							System.out.print("Path is ");
+							printStack(stack);
+							System.out.println();
+							System.out.println();
+						}
+					}
+				} else {
+					prevCity = stack.removeLast();
+					if(stack.size() <= 2) {
+						priceSum  = 0;
+					} else {
+						priceSum -= graph.getPrice(stack.peekLast(), prevCity);
+					}
+					if(prevCity != null) {
+						visited[prevCity] = false;
+					}
+				}
+			}
+		}
+		
+	}
+	
+	public static void printStack(LinkedList<Integer> path) {
+		
+		if(path.size() == 1) {
+			System.out.print(cities2[path.peek()]);
+		}
+
+		String result = null;
+		int plen = path.size() - 1, max = plen + 1;
+		Integer curr, next = null;
+		ListIterator<Integer> li = path.listIterator(0),
+		 					  li2 = path.listIterator(1);
+
+		for (int i = 0; i < plen; i++) 
+		{
+			max--;
+			curr = li.next();
+			System.out.print(cities2[curr]);
+
+			next = li2.next();
+			
+			if(max > 0)
+			{ 
+				System.out.print(String.format(" ($%,.2f", graph.getPrice(curr, next)));
+				System.out.print(") ---> ");
+			}
+		}
+		System.out.print(cities2[next]);
+	}
+	
+	
+	public static void choice3Helper(LinkedList<Integer> path, int mode) {
+		
+		//System.out.println("95 choice3Helper");
+		
+		if(path.size() == 1) {
+			System.out.println(cities2[path.peek()]);
+			return;
+		}
+		int total = 0; 
+		int dist = 0;
+		int max = path.size();
+		double cost = 0, totalCost = 0;
+		
+		Integer curr, next = null;
+		ListIterator<Integer> list1 = path.listIterator(0);
+		ListIterator<Integer> list2 = path.listIterator(1);
+		
+		//System.out.println("110 choice3Helper");
+		
+		for (int i = 0; i < path.size() - 1; i++) 
+		{
+			//System.out.println("114");
+			max--;
+			curr = list1.next();
+			System.out.print(cities2[curr]);
+
+			next = list2.next();
+			
+			cost = graph.getPrice(curr, next) ;
+			if (mode == 1) 
+			{
+				if(curr == next) {
+					dist = 0;
+				} else {
+					Edge tempE = graph.returnAdjacencyList(curr).get(next);
+					if(tempE != null) {
+						dist = tempE.distance;
+					}
+				}
+				if(max > 0)
+				{ 
+					System.out.print(" (" + dist + ")  ---> ");
+				}
+				total +=  dist;
+			} else if (mode == 3) {
+				total+=1;
+				if(max > 0) {
+					System.out.print(" ---> ");
+				}
+			} else if (mode == 2) {
+				
+				if(max > 0)
+				{ 
+					System.out.printf(" ($ %.2f) ---> ", cost);
+				}
+				totalCost += cost;
+			}
+ 		}
+		System.out.print(cities2[next]);
+				
+		System.out.println();
+		switch(mode) {
+			case 1: 
+				System.out.println("Total distance: " + total);
+				break;
+			case 2:
+				System.out.println("Lowest cost: " + totalCost);
+				break;
+			case 3:
+				System.out.println("Fewest hops from " + total);
+				break;
+		}
+	
+	}
+	/*
+	public static LinkedList<Integer>[] choice3 (int selectedCity, int choice) {
+		int V = graph.V(), distance, updateDistance, hops, updateHops, curr, vertexI, visited = 0;
+		double price, updatePrice;
+		//System.out.println("172 choice3");
+		LinkedList<Integer>[] result = new LinkedList[V];
+		LinkedList<Integer>[] paths = new LinkedList[V];
+		
+		Edge [] edges = new Edge[V];
+		edges[selectedCity] = new Edge(selectedCity, selectedCity, 0, 0, 0.0);
+		
+		PriorityQueue<Edge> pq = new PriorityQueue<Edge>();
+		pq.add(edges[selectedCity]);
+		
+		while(pq.peek() != null || visited < V) {
+			//System.out.println("in the while loop of choice 3");
+			if(pq.peek() == null) {
+				int count = 0;
+				while(true) {
+					if(edges[count] == null) {
+						edges[count] = new Edge(count, count, 0, 0, 0.0);
+						curr = count; 
+						break;
+					}
+					count++;
+				}
+			}
+			else {
+				curr = pq.poll().vertexIndex;
+			}
+			visited++;
+			
+			LinkedHashMap<Integer, Edge> vertex = graph.returnAdjacencyList(curr);
+			for(Map.Entry<Integer, Edge> e : vertex.entrySet()) {
+				vertexI = e.getValue().vertexIndex;
+				distance = e.getValue().distance;
+				price = e.getValue().price;
+				if(edges[vertexI] == null) {
+					edges[vertexI] = new Edge(vertexI, curr, distance + edges[curr].distance,
+							1 + edges[curr].hops, price + edges[curr].price);
+					pq.add(edges[vertexI]);
+				}
+				else {
+					if(choice == 1) {
+						updateDistance = distance + edges[curr].distance;
+						if(updateDistance < edges[vertexI].distance) {
+							edges[vertexI].to = curr;
+							edges[vertexI].distance = updateDistance;
+							if(pq.remove(edges[vertexI])) {
+								pq.add(edges[vertexI]);
+							}
+						}
+					} else if (choice == 2) {
+						updatePrice = price + edges[curr].price;
+						if(updatePrice < edges[curr].price) {
+							edges[vertexI].to = curr;
+							edges[vertexI].price = updatePrice;
+							if(pq.remove(edges[vertexI])) {
+								pq.add(edges[vertexI]);
+							}
+						}
+					} else {
+						updateHops = 1 + edges[curr].hops;
+						if(updateHops < edges[vertexI].hops) {
+							edges[vertexI].to = curr;
+							edges[vertexI].hops = updateHops;
+							if(pq.remove(edges[vertexI])) {
+								pq.add(edges[vertexI]);
+							}
+						}
+					}
+				}
+			}
+		}
+		//return all shortest paths
+		int j;
+
+		for (int i = 0; i < V; i++)
+		{
+			j = i;
+			// Via gives reverse order
+			paths[i] = new LinkedList<Integer>();
+			while(true)
+			{
+				paths[i].add(new Integer(j));
+				if (j == edges[j].to) break;
+				j = edges[j].to;
+			}
+
+			// Final result needs to be reversed & put into the correct order
+			result[i] = new LinkedList<Integer>();
+			while(paths[i].peekLast()!=null)
+				result[i].add(paths[i].removeLast());
+		}
+
+		return result;
+	}
+	*/
+	public static LinkedList<Integer>[] choice3(int city, int type)
+	{
+		int V = graph.V(), dist, newDist, hops, newHops, curr, i, visited = 0;
+		double cost, newCost;		
+		//Check if start vertex even exists in the graph
+		if (city > V) return null;
+
+		//algorithm and path storage
+		@SuppressWarnings("unchecked")
+		LinkedList<Integer>[] result = new LinkedList[V];
+		@SuppressWarnings("unchecked")
+		LinkedList<Integer>[] paths = new LinkedList[V];
+
+		Edge [] edges = new Edge[V];
+		edges[city] = new Edge(city, city, 0, 0, 0.0);
+
+		
+		PriorityQueue<Edge> PQ = new PriorityQueue<Edge>();
+		PQ.add(edges[city]);
+
+		// Continue until all vertices are visited
+		while(PQ.peek() != null || visited < V) 
+		{
+			if(PQ.peek() == null) // If the graph isn't connected
+			{
+				// Find next connected subtree of this graph
+				int count = 0;
+				while(true)
+				{
+					if(edges[count] == null) 
+					{
+						edges[count] = new Edge(count, count, 0, 0, 0.0);
+						curr = count; break;
+					}
+					count++;
+				}
+			}
+			else
+				curr = PQ.poll().vertexIndex;
+
+			visited++;
+
+			// Examine all of the current vertex's neighbors, add to PQ
+			// if a neighbor has never been seen before.
+			LinkedHashMap<Integer,Edge> vertex = graph.returnAdjacencyList(curr);
+			for (Map.Entry<Integer, Edge> edge : vertex.entrySet())
+			{
+				i = edge.getValue().vertexIndex;
+				dist = edge.getValue().distance;
+				cost = edge.getValue().price;
+				//if(dist > 0)
+				//{
+					if(edges[i] == null)
+					{
+						edges[i] = new Edge(i, curr, dist + edges[curr].distance,
+								1+ edges[curr].hops, cost + edges[curr].price);
+						PQ.add(edges[i]);
+					}
+					else // Vertex already encountered
+					{
+						switch (type) 
+						{
+							case 1: // If SP by distance
+								newDist = dist + edges[curr].distance;
+
+								if (newDist < edges[i].distance) 
+								{
+									edges[i].to = curr;
+									edges[i].distance = newDist;
+									System.out.println(PQ.remove(edges[i]));
+									if(PQ.remove(edges[i])) PQ.add(edges[i]);
+								}
+								break;
+							case 2: // If SP by cost
+								newCost = cost + edges[curr].price;
+
+								if (newCost < edges[i].price) 
+								{
+									edges[i].to = curr;
+									edges[i].price = newCost;
+									if(PQ.remove(edges[i])) PQ.add(edges[i]);
+								}
+								break;
+							case 3: // If SP by hops
+								newHops = 1 + edges[curr].hops;
+
+								if (newHops < edges[i].hops) 
+								{
+									edges[i].to = curr;
+									edges[i].hops = newHops;
+									if(PQ.remove(edges[i])) PQ.add(edges[i]);
+								}
+						}
+					}
+				//}
+			}					
+		}
+
+		//return all shortest paths
+		int j;
+
+		for (i = 0; i < V; i++)
+		{
+			j = i;
+			// Via gives reverse order
+			paths[i] = new LinkedList<Integer>();
+			while(true)
+			{
+				paths[i].add(new Integer(j));
+				if (j == edges[j].to) break;
+				j = edges[j].to;
+			}
+
+			// Final result needs to be reversed & put into the correct order
+			result[i] = new LinkedList<Integer>();
+			while(paths[i].peekLast()!=null)
+				result[i].add(paths[i].removeLast());
+		}
+
+		return result;
+	}
+	
+	/**
+	 * 
+	 * @param graph
+	 */
+	public static void choice2(Graph graph) {
+		int totalW = 0;
+		
+		int unconnected= 0;
+		
+		int visitednum = 0;
+		int smallestNum = Integer.MAX_VALUE;
+		int unconnectedEdges = 0;
+		int V = graph.V();
+
+		Graph MST = new Graph(V);
+		
+		int vertexNum = 0;
+		
+		boolean[] visited = new boolean[V];
+		
+		int notVisitedEdges[] = new int[V];
+		for(int i = 0; i < V; i++) {
+			notVisitedEdges[i] = graph.returnAdjacencyList(i).size();
+		}
+		
+		Edge temp1 = null;
+		Edge temp2 = null;
+		
+		visited[0] = true;
+		visitednum += 1;
+		System.out.printf("\n%-15s%-15s%-15s%-15s", "From", "To", "Distance", "Price");
+		
+		while(visitednum < V) {
+			smallestNum = Integer.MAX_VALUE;
+			for(int i = 0; i < V; i++) {
+				
+				int smNum = Integer.MAX_VALUE;
+				int max = graph.returnAdjacencyList(i).size();
+				int tempN = 0;
+				
+				//get the unvisited vertex with the shortest distance from a given vertex
+				Edge edge1 = null;
+				Edge edge2 = null;
+				for(Map.Entry<Integer, Edge> edge: graph.returnAdjacencyList(i).entrySet()) {
+					edge1 = edge.getValue();
+					if(!visited[edge.getKey()] && 
+						edge1.distance < smNum) {
+						smNum = edge1.distance;
+						edge2 = edge1;
+					}
+				}
+				temp1 = edge2;
+				
+				if(visited[i] && notVisitedEdges[i]>0 && 
+					(temp1) != null && temp1.distance < smallestNum) {
+					smallestNum = temp1.distance;
+					vertexNum = i;
+					temp2 = temp1;
+				}
+			}
+			
+			//mark the new vertex, and add the edge
+			if(temp2 != null) {
+				notVisitedEdges[vertexNum]--; 
+				notVisitedEdges[temp2.vertexIndex]--;
+				visited[temp2.vertexIndex] = true;
+				MST.addEdge(vertexNum, temp2.to, temp2.distance, temp2.price);
+				totalW += temp2.distance;
+				visitednum++;
+				
+				System.out.printf("\n%-15s%-15s%-15d%-15.2f", cities2[vertexNum], 
+						cities2[temp2.vertexIndex], temp2.distance, 
+						temp2.price);
+				//System.out.println();
+				temp2=null;
+			}
+			else {
+				 int i = 0;
+				 while(true) {
+					 if(visited[i] == false) {
+						 visited[i] = true;
+						 break;
+					 }
+					 i++;
+					 
+				 }
+				 unconnected++;
+				 visitednum++;
+			}
+		}
+		System.out.println();
+		System.out.println();
+		if(unconnected > 0) {
+			System.out.println("This graph contains " + (unconnected + 1) + " subtrees");
+		}
+		System.out.println("The total distance of the graph is " + totalW);
+	}
+	
+	/**
+	 * 
+	 * @author Jinlang
+	 *
+	 */
+	static class Graph {
+		private int V;
+		private int E;
+		private LinkedHashMap<Integer, Edge> [] adjacency;
+		
+		public Graph(int v) {
+			V = v;
+			E = 0;
+			adjacency = new LinkedHashMap[v];
+			for(int i = 0; i < v; i++) {
+				adjacency[i] = new LinkedHashMap<Integer, Edge>();
+			}
+		}
+		public boolean contains(String x) {
+			for(int i = 0; i < V; i++)
+			{
+				if(cities2[i].equals(x)) {
+					//System.out.println(cities2[i]);
+					return true;
+				}
+			}
+			return false;
+		}
+		public int V() { return V;}
+		
+		public void addEdge(int from, int to, int distance, double price) {
+			//System.out.println(from + ", " + to + ", " + distance);
+			adjacency[from].put(new Integer(to), new Edge(to, distance, price));
+			adjacency[to].put(new Integer(from), new Edge(from, distance, price));
+			E++;
+		}
+		
+		public void removeEdge(int from, int to) {
+			adjacency[from].remove(to);
+			adjacency[to].remove(from); 
+			//System.out.println("deleting in removeEdge");
+		}
+		
+		public LinkedHashMap<Integer, Edge> returnAdjacencyList(int i) {
+			return adjacency[i];
+		}
+		
+		public int getDist(Integer i, Integer j)
+		{
+			if(i.equals(j)) return 0;
+			Edge temp = adjacency[i].get(j);
+			if (temp != null) return temp.distance;
+
+			return -1;
+		}
+		
+		public void choice1()
+		{
+			//System.out.println("===================================================================");
+			System.out.printf("\n%-15s%-15s%-15s%-15s", "From", "To", "Distance", "Price");
+			
+			for(int i = 0; i < V; i++) {
+				 for(Map.Entry<Integer, Edge> edge : adjacency[i].entrySet()) {
+					 if(edge.getValue().vertexIndex <= i)
+						 System.out.printf("\n%-15s%-15s%-15d%-15.2f", cities2[i], 
+							 cities2[edge.getValue().vertexIndex], edge.getValue().distance, 
+							 edge.getValue().price);
+				 }
+			}
+			System.out.println();
+		}
+		
+		public double getPrice(Integer i, Integer j) {
+			if(i.equals(j) || i == null || j == null) {
+				return 0;
+			}
+			else {
+				Edge temp = adjacency[i].get(j);
+				if(temp != null) {
+					return temp.price;
+				}
+			}
+			return 0;
+		}
+	
+	} 
+	
+	/**
+	 * 
+	 * @author Jinlang
+	 *
+	 */
+	static class Edge implements Comparable <Edge>{
+		int vertexIndex;
+		int to;
+		int distance;
+		int hops;
+		double price;
+		
+		
+		public Edge(int vertex, int distance, double price) {
+			vertexIndex = vertex;
+			this.to = vertex;
+			this.distance = distance;
+			this.price = price;
+			hops = 0;
+		}
+		
+		public Edge(int from, int to, int distance, double price) {
+			vertexIndex = from;
+			this.to = to;
+			this.distance = distance;
+			this.price = price;
+			hops = 0;
+		}
+		
+		public Edge (int from, int to, int distance, int hop, double price) {
+			vertexIndex = from;
+			this.to = to;
+			this.distance = distance;
+			this.price = price;
+			this.hops = hops;
+		}
+
+		@Override
+		public int compareTo (Edge other)
+		{	return distance - other.distance; }
+	}
+	
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 * @throws Exception
+	 */
+	static Graph readFile(File file) throws Exception {
+		String adj[];
+		Scanner scan = new Scanner(file);
+		int dim = scan.nextInt();
+		scan.nextLine();
+		String cityName;
+		Graph G = new Graph(dim);
+		
+		cities = new  LinkedHashMap<String,Integer>();
+		cities2 = new String[dim];
+		citiesSorted = new ArrayList<String>();
+		for (int i = 0; i < dim; i++ ) 
+		{
+			cityName = scan.nextLine();
+			cities.put(cityName, new Integer(i));
+			cities2[i] = cityName;
+			citiesSorted.add(cityName);
+		}
+		Collections.sort(citiesSorted);
+		
+		while(scan.hasNextLine()) {
+			String line[] = scan.nextLine().split(" ");
+			int cityindex1 = Integer.parseInt(line[0])-1;
+			int cityindex2 = Integer.parseInt(line[1])-1;
+			int distance = Integer.parseInt(line[2]);
+			Double price = Double.parseDouble(line[3]);
+			G.addEdge(cityindex1, cityindex2, distance, price);
+			
+		}
+		scan.close();
+		return G; 
+	}
+}

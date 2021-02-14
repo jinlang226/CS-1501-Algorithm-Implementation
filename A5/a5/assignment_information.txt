@@ -1,0 +1,37 @@
+CS 1501 Assignment Information Sheet\
+ 
+You must submit an information sheet with every assignment. It does not have to be\
+this exact sheet but it should have all of the information shown here.  Also be \
+sure to submit all materials following the procedures described on the submission\
+procedures page.
+
+Name:_____Jinlang Wang_____ Assignment #: ______5_______
+
+Lecture Day and Time: ______Mon Wed 9:30-11:15am_________
+
+Program Due Date: ___________Jul 25th____________
+
+Handed in Date: __________Jul 23th_____________ 
+
+Source code file name(s):
+
+__________________________a5graph.java_________2.txt______________1.txt ____________
+
+________________________________________________________________
+
+Other file name(s) (if relevant): ______________________________
+
+Does your program compile without error?: _Yes____________ 
+
+If not, what is/are the error(s)?:\
+
+________________________________________________________________
+
+Does your program run without error?: _____Yes________ 
+
+If not, what is/are the error(s) and which parts of your program run correctly?:\
+
+________________________________________________________________
+
+Additional comments (including problems and extra credit):
+____________________________________________________________
